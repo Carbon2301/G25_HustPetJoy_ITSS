@@ -36,15 +36,4 @@ public class TreatmentServiceImpl implements TreatmentService {
         treatmentDto.setManagerId(managerId);
         return treatmentDto;
     }
-
-    @Override
-    public List<TreatmentDto> findTreatmentByManagerId(int managerId) {
-        List<Treatment> treatments = treatmentRepository.findTreatmentByManagerId(managerId);
-        return treatments.stream().map(this::toDto).toList();
-    }
-
-    @Override
-    public Treatment findTreatmentByAppointmentid(int appointmentId){
-        return treatmentRepository.findTreatmentByAppointmentid(appointmentId);
-    }
 }
