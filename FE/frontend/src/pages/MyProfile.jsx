@@ -26,9 +26,74 @@ const MyProfile = () => {
     setIsVisible(true);
   }, []);
 
+  // Helper function to format date from backend to yyyy-MM-dd (without timezone issues)
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return "";
+    try {
+      // If it's already in yyyy-MM-dd format, return as is
+      if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return dateString;
+      }
+      // If it's ISO format, extract just the date part
+      if (dateString.includes("T")) {
+        return dateString.split("T")[0];
+      }
+      // For other formats, try to parse manually to avoid timezone issues
+      if (dateString.includes("/")) {
+        // Handle formats like MM/DD/YYYY or DD/MM/YYYY
+        const parts = dateString.split("/");
+        if (parts.length === 3) {
+          // Assume DD/MM/YYYY format
+          const day = parts[0].padStart(2, "0");
+          const month = parts[1].padStart(2, "0");
+          const year = parts[2];
+          return `${year}-${month}-${day}`;
+        }
+      }
+      // For other date strings, parse carefully to avoid timezone offset
+      const date = new Date(dateString + "T00:00:00"); // Add time to avoid UTC interpretation
+      if (isNaN(date.getTime())) {
+        // If still invalid, try original parsing
+        const fallbackDate = new Date(dateString);
+        if (isNaN(fallbackDate.getTime())) {
+          return "";
+        }
+        const year = fallbackDate.getFullYear();
+        const month = String(fallbackDate.getMonth() + 1).padStart(2, "0");
+        const day = String(fallbackDate.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      console.error("Date formatting error:", error);
+      return "";
+    }
+  };
 
+  // Helper function to display gender in Vietnamese
+  const getGenderDisplay = (gender) => {
+    switch (gender?.toLowerCase()) {
+      case "male":
+      case "nam":
+        return "Nam";
+      case "female":
+      case "nu":
+        return "Nữ";
+      case "others":
+      case "khac":
+        return "Khác";
+      default:
+        return "Chưa chọn";
+    }
+  };
+
+  // Function to update user profile data using API
   const updateUserProfileData = async () => {
     try {
+      // Check if any pet has empty required fields
       if (userData.pets && userData.pets.length > 0) {
         const hasInvalidPets = userData.pets.some(
           (pet) => !pet.name || !pet.species || !pet.weight || !pet.health
@@ -44,6 +109,9 @@ const MyProfile = () => {
       formData.append("fullName", userData.fullName);
       formData.append("phone", userData.phone);
       formData.append("address", userData.address);
+      formData.append("sex", userData.sex);
+      formData.append("dob", userData.dob);
+
       // Gửi JSON pets (nhớ giữ lại URL ảnh cũ nếu không chọn ảnh mới)
       formData.append(
         "pets",
@@ -120,7 +188,18 @@ const MyProfile = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-
+        <div
+          className={`text-center mb-8 transform transition-all duration-700 ${
+            isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
+          }`}
+        >
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            Hồ Sơ <span className="text-blue-600">Cá Nhân</span>
+          </h1>
+          <p className="text-gray-600">
+            Quản lý thông tin cá nhân và thú cưng của bạn
+          </p>
+        </div>
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -133,18 +212,6 @@ const MyProfile = () => {
             }`}
           >
             <div className="bg-white rounded-2xl shadow-xl p-8">
-                  <div
-                className={`text-center mb-8 transform transition-all duration-700 ${
-                  isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
-                }`}
-              >
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">
-                  Hồ Sơ <span className="text-blue-600">Cá Nhân</span>
-                </h1>
-                <p className="text-gray-600">
-                  Quản lý thông tin cá nhân và thú cưng của bạn
-                </p>
-              </div>
               {/* Profile Header */}
               <div className="flex flex-col md:flex-row items-center gap-6 mb-8">
                 {/* Avatar Section */}
@@ -153,7 +220,7 @@ const MyProfile = () => {
                     <label htmlFor="image" className="cursor-pointer group">
                       <div className="relative">
                         <img
-                          className="w-20 h-32 rounded-full group-hover:opacity-75 transition-opacity duration-300"
+                          className="w-32 h-32 rounded-full object-cover shadow-lg group-hover:opacity-75 transition-opacity duration-300"
                           src={
                             image ? URL.createObjectURL(image) : userData.image
                           }
@@ -164,6 +231,7 @@ const MyProfile = () => {
                             className="w-8 h-8 text-white"
                             fill="none"
                             stroke="currentColor"
+                            viewBox="0 0 24 24"
                           >
                             <path
                               strokeLinecap="round"
@@ -182,6 +250,8 @@ const MyProfile = () => {
                       </div>
                       <input
                         onChange={(e) => setImage(e.target.files[0])}
+                        type="file"
+                        id="image"
                         hidden
                       />
                     </label>
@@ -193,8 +263,11 @@ const MyProfile = () => {
                     />
                   )}
 
+                  {/* Online Status Indicator */}
                   <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-4 border-white"></div>
                 </div>
+
+                {/* Name and Status */}
                 <div className="text-center md:text-left flex-1">
                   {isEdit ? (
                     <input
@@ -237,25 +310,6 @@ const MyProfile = () => {
                   {isEdit ? (
                     <div className="flex gap-3">
                       <button
-                      onClick={() => setIsEdit(true)}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium flex items-center gap-2"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
-                      </svg>
-                      Chỉnh sửa
-                    </button>
-                      <button
                         onClick={updateUserProfileData}
                         className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium flex items-center gap-2"
                       >
@@ -281,6 +335,26 @@ const MyProfile = () => {
                         Hủy
                       </button>
                     </div>
+                  ) : (
+                    <button
+                      onClick={() => setIsEdit(true)}
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium flex items-center gap-2"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                      Chỉnh sửa
+                    </button>
                   )}
                 </div>
               </div>
@@ -288,13 +362,13 @@ const MyProfile = () => {
               {/* Information Sections */}
               <div className="space-y-8">
                 {/* Contact Information */}
-                <div className="to-purple-50 rounded-xl p-6">
-                  <h3 className="text-xl mb-4 flex items-center gap-2">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <svg
                       className="w-6 h-6 text-blue-600"
                       fill="none"
                       stroke="currentColor"
-                      viewBox="0 0 12 24"
+                      viewBox="0 0 24 24"
                     >
                       <path
                         strokeLinecap="round"
@@ -305,7 +379,7 @@ const MyProfile = () => {
                     </svg>
                     Thông Tin Liên Hệ
                   </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-white rounded-lg p-4">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Email
@@ -313,6 +387,7 @@ const MyProfile = () => {
                       <div className="flex items-center gap-2 text-blue-600">
                         <svg
                           className="w-5 h-5"
+                          fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
@@ -409,6 +484,81 @@ const MyProfile = () => {
                   </div>
                 </div>
 
+                {/* Basic Information */}
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl p-6">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg
+                      className="w-6 h-6 text-green-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                    Thông Tin Cơ Bản
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white rounded-lg p-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Giới tính
+                      </label>
+                      {isEdit ? (
+                        <select
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          onChange={(e) =>
+                            setUserData((prev) => ({
+                              ...prev,
+                              sex: e.target.value,
+                            }))
+                          }
+                          value={userData.sex || ""}
+                        >
+                          <option value="">Chưa chọn</option>
+                          <option value="Male">Nam</option>
+                          <option value="Female">Nữ</option>
+                          <option value="Others">Khác</option>
+                        </select>
+                      ) : (
+                        <p className="text-gray-700">
+                          {getGenderDisplay(userData.sex)}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="bg-white rounded-lg p-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ngày sinh
+                      </label>
+                      {isEdit ? (
+                        <input
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          type="date"
+                          onChange={(e) =>
+                            setUserData((prev) => ({
+                              ...prev,
+                              dob: e.target.value,
+                            }))
+                          }
+                          value={formatDateForInput(userData.dob)}
+                        />
+                      ) : (
+                        <p className="text-gray-700">
+                          {formatDateForInput(userData.dob) || "Chưa cập nhật"}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Pets Information */}
           <div
             className={`transform transition-all duration-700 delay-400 ${
               isVisible
@@ -416,6 +566,45 @@ const MyProfile = () => {
                 : "translate-y-10 opacity-0"
             }`}
           >
+            <div className="bg-white rounded-2xl shadow-xl p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  <span className="text-2xl">🐾</span>
+                  Thú Cưng Của Tôi
+                </h3>
+                {isEdit && (
+                  <button
+                    className="bg-gradient-to-r from-green-500 to-blue-500 text-white py-2 px-4 rounded-full text-sm font-medium hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center gap-2"
+                    onClick={addNewPet}
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
+                    </svg>
+                    Thêm
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {(!userData.pets || userData.pets.length === 0) && !isEdit && (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">🐕</div>
+                    <p className="text-gray-500 mb-4">Chưa có thú cưng nào</p>
+                    <p className="text-sm text-gray-400">
+                      Hãy thêm thông tin thú cưng của bạn
+                    </p>
+                  </div>
+                )}
 
                 {userData.pets &&
                   userData.pets.map((pet, index) => (
@@ -537,6 +726,33 @@ const MyProfile = () => {
 
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Tình trạng sức khỏe{" "}
+                                <span className="text-red-500">*</span>
+                              </label>
+                              <select
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                value={pet.health || "Good"}
+                                onChange={(e) => {
+                                  const newPets = [...userData.pets];
+                                  newPets[index] = {
+                                    ...newPets[index],
+                                    health: e.target.value,
+                                  };
+                                  setUserData((prev) => ({
+                                    ...prev,
+                                    pets: newPets,
+                                  }));
+                                }}
+                              >
+                                <option value="Excellent">Xuất sắc</option>
+                                <option value="Good">Tốt</option>
+                                <option value="Fair">Khá</option>
+                                <option value="Poor">Yếu</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Ghi chú
                               </label>
                               <textarea
@@ -638,33 +854,6 @@ const MyProfile = () => {
                                       </svg>
                                     </button>
                                   </div>
-                                  <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Tình trạng sức khỏe{" "}
-                                    <span className="text-red-500">*</span>
-                                  </label>
-                                  <select
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={pet.health || "Good"}
-                                    onChange={(e) => {
-                                      const newPets = [...userData.pets];
-                                      newPets[index] = {
-                                        ...newPets[index],
-                                        health: e.target.value,
-                                      };
-                                      setUserData((prev) => ({
-                                        ...prev,
-                                        pets: newPets,
-                                      }));
-                                    }}
-                                  >
-                                    <option value="Excellent">Xuất sắc</option>
-                                    <option value="Good">Tốt</option>
-                                    <option value="Fair">Khá</option>
-                                    <option value="Poor">Yếu</option>
-                                  </select>
-                                </div>
-                              </div>
                                 )}
                               </div>
                             </div>
@@ -679,13 +868,14 @@ const MyProfile = () => {
                                 pet.image ||
                                 "https://via.placeholder.com/100?text=🐾"
                               }
+                              alt={pet.name}
                             />
                           </div>
                           <div className="flex-1">
-                            <h4 className="font-bold text-gray-800 mb-1">
+                            <h4 className="font-bold text-lg text-gray-800 mb-1">
                               {pet.name}
                             </h4>
-                            <div className="space-y-2 text-sm text-gray-600">
+                            <div className="space-y-1 text-sm text-gray-600">
                               <p className="flex items-center gap-2">
                                 <span className="text-blue-600">🐕</span>
                                 Loài:{" "}
@@ -709,6 +899,7 @@ const MyProfile = () => {
                                       ? "text-blue-500"
                                       : pet.health === "Fair"
                                       ? "text-yellow-500"
+                                      : "text-red-500"
                                   }`}
                                 >
                                   💖

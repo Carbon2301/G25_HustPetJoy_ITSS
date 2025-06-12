@@ -47,6 +47,27 @@ const MyAppointments = () => {
     }
   };
 
+  const handleCancelAppointment = async (appointmentId) => {
+    try {
+      const { data } = await axios.post(
+        `${backendUrl}/api/user/cancel-appointment`,
+        { appointmentId },
+        { headers: { token } }
+      );
+      if (data.success) {
+        toast.success(data.message);
+        // Immediately remove the cancelled appointment from the state
+        setAppointments((prevAppointments) =>
+          prevAppointments.filter((app) => app.appointmentId !== appointmentId)
+        );
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to cancel appointment");
+    }
+  };
 
   useEffect(() => {
     fetchAppointments();
@@ -87,6 +108,10 @@ const MyAppointments = () => {
     },
   };
 
+  // Separate appointments by type
+  const treatmentAppointments = appointments.filter(
+    (app) => app.manager?.speciality?.toLowerCase() === "treatment"
+  );
 
   const spaAppointments = appointments.filter(
     (app) => app.manager?.speciality?.toLowerCase() === "spa"
@@ -115,13 +140,6 @@ const MyAppointments = () => {
               alt={appointment.manager?.name}
               className="w-16 h-16 rounded-full object-cover shadow-md"
             />
-            
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-500">Appointment Date</p>
-            <p className="font-medium">
-              {formatDate(appointment.appointmentDate)}
-            </p>
             <div>
               <h3 className="text-xl font-semibold text-gray-800">
                 {appointment.manager?.name}
@@ -142,17 +160,25 @@ const MyAppointments = () => {
               )}
             </div>
           </div>
+          <div className="text-right">
+            <p className="text-sm text-gray-500">Appointment Date</p>
+            <p className="font-medium">
+              {formatDate(appointment.appointmentDate)}
+            </p>
+          </div>
         </div>
 
         <div className="mt-6 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <motion.img
               whileHover={{ scale: 1.1 }}
+              src={appointment.petImgUrl || assets.pet_placeholder}
+              alt={appointment.petName}
               className="w-12 h-12 rounded-full object-cover shadow-md"
             />
             <div>
               <p className="font-medium">{appointment.petName}</p>
-              <p className="text-sm text-gray-600">{appointment.petSpecies}</p>
+              <p className="text-sm text-gray-500">{appointment.petSpecies}</p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
@@ -160,15 +186,16 @@ const MyAppointments = () => {
               whileHover={{ scale: 1.05 }}
               className={`px-3 py-1 rounded-full text-sm ${
                 appointment.isCompleted
-                  ? "bg-green-90 text-green-800"
+                  ? "bg-green-100 text-green-800"
                   : appointment.isPaid
-                  ? "bg-green-90 text-green-800"
-                  : "bg-yellow-90 text-yellow-800"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-yellow-100 text-yellow-800"
               }`}
             >
               {appointment.isCompleted
                 ? "Completed"
                 : appointment.isPaid
+                ? "Paid"
                 : "Pending"}
             </motion.span>
             {appointment.notes && (
@@ -184,7 +211,7 @@ const MyAppointments = () => {
             {appointment.isCompleted && appointment.followUpDate && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => handleViewFollowUpDate(appointment)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
@@ -203,6 +230,7 @@ const MyAppointments = () => {
             )}
             {!appointment.isCancelled && !appointment.isCompleted && (
               <motion.button
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() =>
                   handleCancelAppointment(appointment.appointmentId)
@@ -230,7 +258,13 @@ const MyAppointments = () => {
       <div
         className={`mb-6 rounded-lg ${bgColor} p-4 flex items-center shadow-md`}
       >
-              <AnimatePresence>
+        <span className={`${iconClass} mr-2`}></span>
+        <h2 className={`text-xl font-bold ${textColor}`}>{title}</h2>
+        <span className="ml-2 bg-white text-gray-800 px-2 py-1 rounded-full text-sm font-medium">
+          {appointments.length}
+        </span>
+      </div>
+      <AnimatePresence>
         {appointments.length === 0 ? (
           <div className="text-center py-8 bg-white rounded-lg shadow-sm text-gray-500">
             No {title.toLowerCase()} appointments
@@ -244,12 +278,6 @@ const MyAppointments = () => {
           ))
         )}
       </AnimatePresence>
-        <span className={`${iconClass} mr-2`}></span>
-        <h2 className={`text-xl font-bold ${textColor}`}>{title}</h2>
-        <span className="ml-2 bg-white text-gray-800 px-2 py-1 rounded-full text-sm font-medium">
-          {appointments.length}
-        </span>
-      </div>
     </div>
   );
 
@@ -257,11 +285,6 @@ const MyAppointments = () => {
   const handleViewNotes = (appointment) => {
     setSelectedAppointmentForNotes(appointment);
     setIsNotesModalOpen(true);
-  };
-
-  const closeFollowUpDateModal = () => {
-    setIsFollowUpDateModalOpen(false);
-    setSelectedAppointmentForFollowUpDate(null);
   };
 
   const closeNotesModal = () => {
@@ -274,6 +297,10 @@ const MyAppointments = () => {
     setIsFollowUpDateModalOpen(true);
   };
 
+  const closeFollowUpDateModal = () => {
+    setIsFollowUpDateModalOpen(false);
+    setSelectedAppointmentForFollowUpDate(null);
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -334,102 +361,7 @@ const MyAppointments = () => {
           <ViewBill appointment={selectedAppointment} onClose={hideBill} />
         )}
       </AnimatePresence>
-      
-      {/* Follow Up Date Modal */}
-      <AnimatePresence>
-        {isFollowUpDateModalOpen && selectedAppointmentForFollowUpDate && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={closeFollowUpDateModal}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-gradient-to-r from-blue-500 p-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold">📝 Ngày Tái Khám</h2>
-                    <p className="text-green-100 mt-1">
-                      Thú cưng: {selectedAppointmentForFollowUpDate.petName}
-                    </p>
-                    <p className="text-green-100 text-sm">
-                      Bác sĩ: {selectedAppointmentForFollowUpDate.manager?.name}
-                    </p>
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={closeFollowUpDateModal}
-                    className="bg-white/20 hover:bg-white/30 rounded-full p-2 transition-colors"
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </motion.button>
-                </div>
-              </div>
 
-              <div className="p-6">
-                <div className="bg-gray-50 rounded-xl p-6 border-l-4 border-blue-500">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                    <span className="mr-2">🩺</span>
-                    Ngày Tái Khám
-                  </h3>
-                  {selectedAppointmentForFollowUpDate.followUpDate ? (
-                    <div className="prose prose-gray max-w-none">
-                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                        {new Date(selectedAppointmentForFollowUpDate.followUpDate).toLocaleDateString('vi-VN')}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 italic">
-                      Chưa có ngày tái khám cho cuộc hẹn này.
-                    </p>
-                  )}
-                </div>
-
-                <div className="mt-6 bg-blue-50 rounded-xl p-4 border border-blue-200">
-                  <p className="text-blue-800 text-sm flex items-center">
-                    <span className="mr-2">ℹ️</span>
-                    <span>
-                      Ngày tái khám này được tạo bởi bác sĩ sau khi khám và điều trị
-                      cho thú cưng của bạn. Vui lòng giữ lại để theo dõi
-                    </span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 px-6 py-4 flex justify-end">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={closeFollowUpDateModal}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                >
-                  Đóng
-                </motion.button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
       {/* Notes Modal */}
       <AnimatePresence>
         {isNotesModalOpen && selectedAppointmentForNotes && (
@@ -518,6 +450,102 @@ const MyAppointments = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={closeNotesModal}
                   className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  Đóng
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Follow Up Date Modal */}
+      <AnimatePresence>
+        {isFollowUpDateModalOpen && selectedAppointmentForFollowUpDate && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={closeFollowUpDateModal}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-gradient-to-r from-blue-500 p-6 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold">📝 Ngày Tái Khám</h2>
+                    <p className="text-green-100 mt-1">
+                      Thú cưng: {selectedAppointmentForFollowUpDate.petName}
+                    </p>
+                    <p className="text-green-100 text-sm">
+                      Bác sĩ: {selectedAppointmentForFollowUpDate.manager?.name}
+                    </p>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={closeFollowUpDateModal}
+                    className="bg-white/20 hover:bg-white/30 rounded-full p-2 transition-colors"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </motion.button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <div className="bg-gray-50 rounded-xl p-6 border-l-4 border-blue-500">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                    <span className="mr-2">🩺</span>
+                    Ngày Tái Khám
+                  </h3>
+                  {selectedAppointmentForFollowUpDate.followUpDate ? (
+                    <div className="prose prose-gray max-w-none">
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        {new Date(selectedAppointmentForFollowUpDate.followUpDate).toLocaleDateString('vi-VN')}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 italic">
+                      Chưa có ngày tái khám cho cuộc hẹn này.
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-6 bg-blue-50 rounded-xl p-4 border border-blue-200">
+                  <p className="text-blue-800 text-sm flex items-center">
+                    <span className="mr-2">ℹ️</span>
+                    <span>
+                      Ngày tái khám này được tạo bởi bác sĩ sau khi khám và điều trị
+                      cho thú cưng của bạn. Vui lòng giữ lại để theo dõi
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 px-6 py-4 flex justify-end">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={closeFollowUpDateModal}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
                   Đóng
                 </motion.button>
