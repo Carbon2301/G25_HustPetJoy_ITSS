@@ -13,7 +13,9 @@ const DoctorAppointments = () => {
     cancelAppointment,
     completeAppointment,
     addMedicine,
-    getMedicines
+    getMedicines,
+    totalPrice,
+    medicines,
   } = useContext(DoctorContext);
   const { slotDateFormat, currency, backendUrl } = useContext(AppContext);
 
@@ -25,7 +27,7 @@ const DoctorAppointments = () => {
   const [isMedicinesModalOpen, setIsMedicinesModalOpen] = useState(false);
   const [existingMedicines, setExistingMedicines] = useState([]);
   const [totalMedicinePrice, setTotalMedicinePrice] = useState(0);
-  const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(true);
+  const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
   const [followUpDate, setFollowUpDate] = useState("");
 
   // Notes state
@@ -79,6 +81,7 @@ const DoctorAppointments = () => {
         );
 
         if (success) {
+          // Refresh appointments after successful addition
           await getAppointments();
           setIsModalOpen(false);
           setType("");
@@ -102,7 +105,8 @@ const DoctorAppointments = () => {
       );
       setExistingMedicines(medicines);
       setTotalMedicinePrice(totalPrice);
-      setIsMedicinesModalOpen(false);
+      setSelectedAppointment(appointment);
+      setIsMedicinesModalOpen(true);
     } catch (error) {
       console.error("Error fetching medicines:", error);
       alert("Failed to fetch medicines. Please try again.");
@@ -136,6 +140,7 @@ const DoctorAppointments = () => {
         setIsNotesModalOpen(false);
         setNotes("");
         setSelectedAppointmentForNotes(null);
+        // Refresh appointments to show updated notes
         await getAppointments();
       } else {
         toast.error("Không thể cập nhật ghi chú. Vui lòng thử lại.");
@@ -166,7 +171,8 @@ const DoctorAppointments = () => {
 
       if (response.data.success) {
         toast.success("Đã lên lịch tái khám thành công!");
-        setIsFollowUpModalOpen(true);
+        setIsFollowUpModalOpen(false);
+        setFollowUpDate("");
         setSelectedAppointment(null);
         await getAppointments();
       } else {
@@ -179,7 +185,7 @@ const DoctorAppointments = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
         <div
@@ -190,28 +196,22 @@ const DoctorAppointments = () => {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             HustPetJoy - Quản Lý Lịch Hẹn
           </h1>
-          <p className="text-gray-800">
+          <p className="text-gray-600">
             Quản lý và theo dõi tất cả các cuộc hẹn khám thú cưng
           </p>
         </div>
 
+        {/* Stats Cards */}
         <div
           className={`grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 transform transition-all duration-700 delay-100 ${
             isVisible ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0"
           }`}
         >
-
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
             <div className="flex items-center gap-4">
-              <div className="bg-green-50 p-4 rounded-xl">
+              <div className="bg-blue-50 p-4 rounded-xl">
                 <svg
-                  className="w-8 h-8 text-green-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 12 24"
-                >
-                  <svg
-                  className="w-8 h-8 text-purple-500"
+                  className="w-8 h-8 text-blue-500"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -220,10 +220,29 @@ const DoctorAppointments = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                   />
                 </svg>
-                  <path                
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-800">
+                  {appointments.length}
+                </p>
+                <p className="text-gray-500 font-medium">Tổng Số Lịch Hẹn</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+            <div className="flex items-center gap-4">
+              <div className="bg-green-50 p-4 rounded-xl">
+                <svg
+                  className="w-8 h-8 text-green-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
@@ -240,10 +259,31 @@ const DoctorAppointments = () => {
             </div>
           </div>
 
-          <div className="rounded-4xl shadow-lg p-6 border border-gray-100">
+          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
             <div className="flex items-center gap-4">
               <div className="bg-purple-50 p-4 rounded-xl">
-              
+                <svg
+                  className="w-8 h-8 text-purple-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-800">
+                  {
+                    appointments.filter((a) => !a.isCompleted && !a.cancelled)
+                      .length
+                  }
+                </p>
+                <p className="text-gray-500 font-medium">Đang Chờ</p>
               </div>
             </div>
           </div>
@@ -281,6 +321,9 @@ const DoctorAppointments = () => {
                   <th className="p-4 text-sm font-medium text-gray-500">
                     Status
                   </th>
+                  <th className="p-4 text-sm font-medium text-gray-500">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -297,7 +340,7 @@ const DoctorAppointments = () => {
                           alt=""
                         />
                         <span className="font-medium text-gray-800">
-                          {item.petId}
+                          {item.petName}
                         </span>
                       </div>
                     </td>
@@ -315,9 +358,10 @@ const DoctorAppointments = () => {
                     </td>
                     <td className="p-4">
                       <span
-                        className={`px-3 py-1 rounded-full ${
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
                           item.isPaid
                             ? "bg-green-50 text-green-600"
+                            : "bg-red-50 text-red-600"
                         }`}
                       >
                         {item.isPaid ? "Paid" : "Not Paid"}
@@ -336,7 +380,13 @@ const DoctorAppointments = () => {
                           Cancelled
                         </span>
                       ) : item.isCompleted ? (
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-50 text-green-600">
+                          Completed
+                        </span>
                       ) : (
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-600">
+                          Pending
+                        </span>
                       )}
                     </td>
                     <td className="p-4">
@@ -381,25 +431,6 @@ const DoctorAppointments = () => {
                           >
                             Thêm thuốc
                           </button>
-                          <div className="rounded-4xl shadow-lg p-6 border border-gray-100">
-                            <div className="flex items-center gap-4">
-                              <div className="bg-purple-50 p-4 rounded-xl">
-                                <svg
-                                  className="w-8 h-8 text-purple-500"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                  />
-                                </svg>
-                              </div>
-                            </div>
-                          </div>
                           <button
                             onClick={() => handleOpenNotesModal(item)}
                             className="px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors duration-200 text-xs font-medium"
@@ -620,7 +651,6 @@ const DoctorAppointments = () => {
           </div>
         </div>
       )}
-
       {/* Notes Modal */}
       {isNotesModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -687,7 +717,6 @@ const DoctorAppointments = () => {
           </div>
         </div>
       )}
-
       {/* Follow-up Appointment Modal */}
       {isFollowUpModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -701,7 +730,6 @@ const DoctorAppointments = () => {
                 Thú cưng: {selectedAppointment?.petName}
               </p>
             </div>
-
             <div className="p-6">
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -749,5 +777,4 @@ const DoctorAppointments = () => {
     </div>
   );
 };
-
 export default DoctorAppointments;
