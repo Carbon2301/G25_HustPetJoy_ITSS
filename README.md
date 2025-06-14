@@ -78,12 +78,12 @@ cd G25_HustPetJoy_ITSS
 ```
 
 ### 2. Thiết lập Database
-#### Option 1: Sử dụng Docker (Khuyến nghị)
+#### Bước 1: Sử dụng Docker (Khuyến nghị)
 ```bash
 docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=HustPetJoy@20242" -p 1444:1433 --name hust_pet_joy_db --hostname hust_pet_joy_db -d mcr.microsoft.com/mssql/server:2019-latest
 ```
 
-#### Option 2: Cài đặt SQL Server thủ công
+#### Bước 2: Cài đặt SQL Server thủ công
 - Tải và cài đặt SQL Server
 - Tạo database mới với tên `hust_pet_joy`
 - Import file `sql/petjoy.sql` vào database hoặc copy code bên trong file petjoy.sql vào **New Query** trong **SQL Server**
@@ -100,8 +100,8 @@ cd BE
 ### 4. Chạy Backend
 ```bash
 # Trong thư mục BE
-./mvnw spring-boot:run
-# Hoặc sử dụng IDE (IntelliJ IDEA, Eclipse) **Khuyến khích dùng**
+# ./mvnw spring-boot:run
+Hoặc sử dụng IDE (IntelliJ IDEA, Eclipse) **Khuyến khích dùng**
 ```
 
 ### 5. Cài đặt và chạy Frontend
