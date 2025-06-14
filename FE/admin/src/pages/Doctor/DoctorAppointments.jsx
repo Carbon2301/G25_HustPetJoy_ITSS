@@ -651,6 +651,7 @@ const DoctorAppointments = () => {
           </div>
         </div>
       )}
+
       {/* Notes Modal */}
       {isNotesModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -717,6 +718,7 @@ const DoctorAppointments = () => {
           </div>
         </div>
       )}
+
       {/* Follow-up Appointment Modal */}
       {isFollowUpModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -730,6 +732,7 @@ const DoctorAppointments = () => {
                 Thú cưng: {selectedAppointment?.petName}
               </p>
             </div>
+
             <div className="p-6">
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -777,4 +780,5 @@ const DoctorAppointments = () => {
     </div>
   );
 };
+
 export default DoctorAppointments;
